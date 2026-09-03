@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>宇航熔断器选型计算器 - 北京航芯微电子</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+        
+        .header-gradient {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+        }
+        
+        .card {
+            background: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .input-field {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            transition: all 0.2s ease;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .input-field:focus {
+            background: #ffffff;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            outline: none;
+        }
+        
+        .input-field::placeholder {
+            color: #94a3b8;
+        }
+        
+        select.input-field {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 18px;
+            padding-right: 40px;
+        }
+        
+        .btn-calculate {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-calculate:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+        }
+        
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .result-row:last-child {
+            border-bottom: none;
+        }
+        
+        .result-label {
+            font-size: 13px;
+            color: #64748b;
+        }
+        
+        .result-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        .result-value.highlight {
+            color: #2563eb;
+        }
+        
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-dot {
+            width: 4px;
+            height: 16px;
+            border-radius: 2px;
+        }
+        
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 0;
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.5;
+        }
+        
+        .check-box {
+            width: 18px;
+            height: 18px;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 4px;
+            flex-shrink: 0;
+            margin-top: 1px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .check-box.checked {
+            background: #2563eb;
+            border-color: #2563eb;
+        }
+        
+        .check-box.checked::after {
+            content: '';
+            width: 10px;
+            height: 6px;
+            border-left: 2px solid white;
+            border-bottom: 2px solid white;
+            transform: rotate(-45deg) translate(1px, -1px);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .capacitive-section {
+            overflow: hidden;
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+        }
+        
+        .capacitive-section.hidden-section {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .tag-blue {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        
+        .tag-amber {
+            background: #fffbeb;
+            color: #d97706;
+        }
+        
+        .tag-green {
+            background: #f0fdf4;
+            color: #16a34a;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+        
+        .formula-note {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+        
+        .conclusion-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            font-size: 13px;
+        }
+        
+        .conclusion-label {
+            color: #64748b;
+        }
+        
+        .conclusion-value {
+            font-weight: 600;
+            color: #1e293b;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <div class="header-gradient text-white px-4 pt-6 pb-8">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="logo-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="text-base font-semibold tracking-wide">北京航芯微电子科技有限公司</div>
+                <div class="text-xs text-blue-200 mt-0.5">BEIJING HANGXIN MICROELECTRONICS</div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <h1 class="text-xl font-bold mb-1">宇航熔断器选型计算器</h1>
+            <p class="text-sm text-blue-200">Aerospace Fuse Sizing Calculator</p>
+        </div>
+    </div>
+
+    <div class="max-w-lg mx-auto px-4 -mt-4 pb-8">
+        <!-- 输入参数 -->
+        <div class="card p-5 mb-4">
+            <div class="section-title mb-4">
+                <div class="section-dot" style="background: #2563eb;"></div>
+                输入参数
+                <span class="tag tag-blue ml-auto">客户填写</span>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- 1. 系统最大工作电压 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span class="text-slate-400 mr-1">1.</span>系统最大工作电压（含尖峰）
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="V_sys" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入电压值" step="0.01">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">V</span>
+                    </div>
+                    <p class="formula-note">例：32</p>
+                </div>
+                
+                <!-- 2. 回路稳态工作电流 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span class="text-slate-400 mr-1">2.</span>回路稳态工作电流
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="I_op" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入电流值" step="0.01">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">A</span>
+                    </div>
+                    <p class="formula-note">例：3</p>
+                </div>
+                
+                <!-- 3. 回路最大预期短路电流 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span class="text-slate-400 mr-1">3.</span>回路最大预期短路电流
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="I_sc" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入短路电流" step="0.01">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">A</span>
+                    </div>
+                    <p class="formula-note">例：150</p>
+                </div>
+                
+                <!-- 4. 负载类型 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span class="text-slate-400 mr-1">4.</span>负载类型
+                    </label>
+                    <select id="load_type" class="input-field w-full px-3 py-2.5 rounded-lg text-sm" onchange="toggleCapacitive()">
+                        <option value="阻性">阻性</option>
+                        <option value="容性" selected>容性</option>
+                        <option value="其他">其他</option>
+                    </select>
+                    <p class="formula-note">填：阻性 / 容性 / 其他</p>
+                </div>
+                
+                <!-- 5. 产品环境最高工作温度 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span class="text-slate-400 mr-1">5.</span>产品环境最高工作温度
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="T_max" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入温度" step="0.1">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">℃</span>
+                    </div>
+                    <p class="formula-note">例：105</p>
+                </div>
+                
+                <!-- 6. 温度降额系数 DT -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span class="text-slate-400 mr-1">6.</span>温度降额系数 DT
+                    </label>
+                    <input type="number" id="DT" value="0.8" class="input-field w-full px-3 py-2.5 rounded-lg text-sm" placeholder="默认0.8" step="0.01">
+                    <p class="formula-note">查器件手册，例：0.8；无数据填0.8</p>
+                </div>
+                
+                <!-- 7. 产品全寿命上电/冲击次数 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span class="text-slate-400 mr-1">7.</span>产品全寿命上电/冲击次数
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="cycle_count" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入次数">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">次</span>
+                    </div>
+                    <p class="formula-note">例：500</p>
+                </div>
+                
+                <!-- 容性负载专项 -->
+                <div id="capacitive_fields" class="capacitive-section">
+                    <div class="border-t border-slate-100 pt-4 mt-2">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="tag tag-amber">容性负载专项</span>
+                            <span class="text-xs text-slate-400">仅容性负载填写</span>
+                        </div>
+                        
+                        <!-- 8. 容性负载：总滤波电容 -->
+                        <div class="mb-4">
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                                <span class="text-slate-400 mr-1">8.</span>容性负载：总滤波电容
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="C_cap" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入电容值" step="0.01">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">μF</span>
+                            </div>
+                            <p class="formula-note">仅容性负载填，例：200</p>
+                        </div>
+                        
+                        <!-- 9. 容性负载：回路总电阻 -->
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                                <span class="text-slate-400 mr-1">9.</span>容性负载：回路总电阻
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="R_total" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入电阻值" step="0.001">
+                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">Ω</span>
+                            </div>
+                            <p class="formula-note">含软启动/导线/电源内阻，例：0.5</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 10. 被保护对象允许损坏时间 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span id="label_10" class="text-slate-400 mr-1">10.</span>被保护对象允许损坏时间
+                    </label>
+                    <div class="relative">
+                        <input type="number" id="t_damage" class="input-field w-full px-3 py-2.5 rounded-lg text-sm pr-10" placeholder="请输入时间" step="0.001">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">s</span>
+                    </div>
+                    <p class="formula-note">例：5；导线或器件过载烧毁时间</p>
+                </div>
+                
+                <!-- 11. 是否需要熔断遥测指示 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span id="label_11" class="text-slate-400 mr-1">11.</span>是否需要熔断遥测指示
+                    </label>
+                    <select id="telemetry" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        <option value="否" selected>否</option>
+                        <option value="是">是</option>
+                    </select>
+                    <p class="formula-note">填：是 / 否</p>
+                </div>
+                
+                <!-- 12. 使用场景 -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">
+                        <span id="label_12" class="text-slate-400 mr-1">12.</span>使用场景
+                    </label>
+                    <select id="scenario" class="input-field w-full px-3 py-2.5 rounded-lg text-sm">
+                        <option value="地面">地面</option>
+                        <option value="机载" selected>机载</option>
+                        <option value="星载">星载</option>
+                    </select>
+                    <p class="formula-note">填：地面 / 机载 / 星载</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 计算按钮 -->
+        <button onclick="calculate()" class="btn-calculate w-full py-3.5 rounded-xl font-medium text-white text-base mb-4">
+            开始计算
+        </button>
+
+        <!-- 自动计算结果 -->
+        <div id="calc_section" class="hidden fade-in">
+            <div class="card p-5 mb-4">
+                <div class="section-title mb-4">
+                    <div class="section-dot" style="background: #16a34a;"></div>
+                    自动计算结果
+                    <span class="tag tag-green ml-auto">公式自动生成</span>
+                </div>
+                
+                <div class="result-row">
+                    <div>
+                        <div class="result-label">最小标称电流（基础降额0.5）</div>
+                        <div class="formula-note">I_Fn ≥ I_op / 0.5</div>
+                    </div>
+                    <div class="result-value" id="res_I_base">—</div>
+                </div>
+                
+                <div class="result-row">
+                    <div>
+                        <div class="result-label">温度降额后允许工作电流</div>
+                        <div class="formula-note">反推：I_op ≤ I_Fn×DT，取大值</div>
+                    </div>
+                    <div class="result-value" id="res_I_temp">—</div>
+                </div>
+                
+                <div class="result-row">
+                    <div>
+                        <div class="result-label">推荐标称电流（取大）</div>
+                        <div class="formula-note">最终选标称电流≥此值</div>
+                    </div>
+                    <div class="result-value highlight" id="res_I_nom">—</div>
+                </div>
+                
+                <div class="result-row">
+                    <div>
+                        <div class="result-label">推荐额定DC电压</div>
+                        <div class="formula-note">V_Fn ≥ 1.2×V_sys(max)</div>
+                    </div>
+                    <div class="result-value highlight" id="res_V_nom">—</div>
+                </div>
+                
+                <div class="result-row">
+                    <div>
+                        <div class="result-label">推荐额定分断能力</div>
+                        <div class="formula-note">I_interrupt ≥ 1.3×I_SC(max)</div>
+                    </div>
+                    <div class="result-value highlight" id="res_I_int">—</div>
+                </div>
+                
+                <!-- 容性负载专项结果 -->
+                <div id="cap_calc_result" class="hidden">
+                    <div class="border-t border-slate-100 mt-3 pt-3">
+                        <div class="flex items-center gap-2 mb-3">
+                            <span class="tag tag-amber">容性负载专项</span>
+                        </div>
+                        
+                        <div class="result-row">
+                            <div>
+                                <div class="result-label">充电峰值电流 I_peak</div>
+                                <div class="formula-note">I_peak = V_bus / R_total</div>
+                            </div>
+                            <div class="result-value" id="res_I_peak">—</div>
+                        </div>
+                        
+                        <div class="result-row">
+                            <div>
+                                <div class="result-label">RC时间常数 τ</div>
+                                <div class="formula-note">τ = R_total × C（F）</div>
+                            </div>
+                            <div class="result-value" id="res_tau">—</div>
+                        </div>
+                        
+                        <div class="result-row">
+                            <div>
+                                <div class="result-label">单次浪涌 I²t</div>
+                                <div class="formula-note">I²t = 0.5 × I_peak² × τ</div>
+                            </div>
+                            <div class="result-value" id="res_I2t_surge">—</div>
+                        </div>
+                        
+                        <div class="result-row">
+                            <div>
+                                <div class="result-label">I²t安全系数 S</div>
+                                <div class="formula-note">上电少+有鉴定=5；否则=10</div>
+                            </div>
+                            <div class="result-value" id="res_S">—</div>
+                        </div>
+                        
+                        <div class="result-row">
+                            <div>
+                                <div class="result-label">需要的最小熔化 I²t</div>
+                                <div class="formula-note">I²t_m(min) ≥ S × I²t_surge</div>
+                            </div>
+                            <div class="result-value highlight" id="res_I2t_min">—</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-row">
+                    <div class="result-label">推荐熔断器类型</div>
+                    <div class="result-value highlight" id="res_type">—</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 选型结论 -->
+        <div id="conclusion_section" class="hidden fade-in">
+            <div class="card p-5 mb-4">
+                <div class="section-title mb-4">
+                    <div class="section-dot" style="background: #d97706;"></div>
+                    选型结论
+                    <span class="tag tag-amber ml-auto">自动汇总</span>
+                </div>
+                
+                <div class="space-y-1">
+                    <div class="conclusion-item">
+                        <span class="conclusion-label">推荐标称电流 ≥</span>
+                        <span class="conclusion-value" id="sum_I">— A</span>
+                    </div>
+                    <div class="conclusion-item">
+                        <span class="conclusion-label">推荐额定DC电压 ≥</span>
+                        <span class="conclusion-value" id="sum_V">— V</span>
+                    </div>
+                    <div class="conclusion-item">
+                        <span class="conclusion-label">推荐额定分断能力 ≥</span>
+                        <span class="conclusion-value" id="sum_Int">— A</span>
+                    </div>
+                    <div class="conclusion-item">
+                        <span class="conclusion-label">推荐熔断器类型</span>
+                        <span class="conclusion-value" id="sum_type">—</span>
+                    </div>
+                    <div class="conclusion-item" id="sum_I2t_row">
+                        <span class="conclusion-label">容性负载：最小熔化I²t ≥</span>
+                        <span class="conclusion-value" id="sum_I2t">不适用</span>
+                    </div>
+                    
+                    <div class="border-t border-slate-100 mt-3 pt-3 space-y-2">
+                        <div class="text-xs text-slate-500 leading-relaxed">
+                            <span class="font-medium text-slate-600">保护时序要求：</span>
+                            故障时熔断时间应 < <span id="sum_time" class="text-slate-800 font-medium">—</span> s
+                        </div>
+                        <div class="text-xs text-slate-500 leading-relaxed">
+                            <span class="font-medium text-slate-600">质量等级要求：</span>
+                            <span id="sum_quality" class="text-slate-800">—</span>
+                        </div>
+                        <div class="text-xs text-slate-500 leading-relaxed">
+                            <span class="font-medium text-slate-600">封装建议：</span>
+                            优先选用表面贴装或螺栓式
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 选型校核清单 -->
+        <div id="checklist_section" class="hidden fade-in">
+            <div class="card p-5 mb-4">
+                <div class="section-title mb-2">
+                    <div class="section-dot" style="background: #7c3aed;"></div>
+                    选型校核清单
+                    <span class="text-xs text-slate-400 ml-auto">人工确认</span>
+                </div>
+                <p class="text-xs text-slate-400 mb-3">请逐项核对，点击方框标记已确认</p>
+                
+                <div id="checklist_items">
+                    <div class="check-item" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>稳态电流降额0.5，叠加温度降额已执行</span>
+                    </div>
+                    <div class="check-item" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>直流回路未选用交流熔断器</span>
+                    </div>
+                    <div class="check-item check-capacitive" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>容性负载按RC指数积分算I²t，未用矩形脉冲公式</span>
+                    </div>
+                    <div class="check-item" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>未采用N×I²t能量直接叠加；热疲劳靠安全系数S+上电试验</span>
+                    </div>
+                    <div class="check-item" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>电压1.2倍、分断1.3倍工程裕量已满足</span>
+                    </div>
+                    <div class="check-item check-star" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>星载场景确认全密封防喷溅、辐照等级适配</span>
+                    </div>
+                    <div class="check-item" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>I-T曲线校验：正常工况不熔断，故障时t_fuse < t_damage</span>
+                    </div>
+                    <div class="check-item check-capacitive" onclick="toggleCheck(this)">
+                        <div class="check-box"></div>
+                        <span>容性负载无脉冲循环鉴定时，已做模拟上电冲击试验</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部说明 -->
+        <div id="footer_note" class="hidden fade-in">
+            <div class="text-center text-xs text-slate-400 px-4 py-4 leading-relaxed">
+                <p>说明：输入参数由客户填写；自动计算由公式生成；选型结论自动汇总。</p>
+                <p class="mt-1">容性负载必须填电容和回路电阻；阻性/其他负载容性相关项自动留空。</p>
+                <p class="mt-2 text-slate-300">© 2024 北京航芯微电子科技有限公司</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化：根据默认负载类型显示/隐藏容性字段
+        document.addEventListener('DOMContentLoaded', function() {
+            toggleCapacitive();
+        });
+
+        function toggleCapacitive() {
+            const loadType = document.getElementById('load_type').value;
+            const capFields = document.getElementById('capacitive_fields');
+            const label10 = document.getElementById('label_10');
+            const label11 = document.getElementById('label_11');
+            const label12 = document.getElementById('label_12');
+            
+            if (loadType === '容性') {
+                capFields.classList.remove('hidden-section');
+                label10.textContent = '10.';
+                label11.textContent = '11.';
+                label12.textContent = '12.';
+            } else {
+                capFields.classList.add('hidden-section');
+                label10.textContent = '8.';
+                label11.textContent = '9.';
+                label12.textContent = '10.';
+            }
+        }
+
+        function toggleCheck(element) {
+            const box = element.querySelector('.check-box');
+            box.classList.toggle('checked');
+        }
+
+        function formatNumber(num, decimals) {
+            if (num === null || num === undefined || isNaN(num)) return '—';
+            return Number(num).toFixed(decimals);
+        }
+
+        function calculate() {
+            // 获取输入值
+            const V_sys = parseFloat(document.getElementById('V_sys').value);
+            const I_op = parseFloat(document.getElementById('I_op').value);
+            const I_sc = parseFloat(document.getElementById('I_sc').value);
+            const load_type = document.getElementById('load_type').value;
+            const T_max = parseFloat(document.getElementById('T_max').value);
+            let DT = parseFloat(document.getElementById('DT').value);
+            const cycle_count = parseInt(document.getElementById('cycle_count').value);
+            const t_damage = parseFloat(document.getElementById('t_damage').value);
+            const telemetry = document.getElementById('telemetry').value;
+            const scenario = document.getElementById('scenario').value;
+            
+            // 防御性处理
+            if (!DT || DT <= 0 || isNaN(DT)) DT = 0.8;
+            
+            // 基础校验 - 关键参数不能为空
+            if (isNaN(V_sys) || isNaN(I_op) || isNaN(I_sc)) {
+                alert('请填写完整的基本参数：系统最大工作电压、回路稳态工作电流、回路最大预期短路电流');
+                return;
+            }
+            
+            // ========== 自动计算 ==========
+            
+            // 最小标称电流（基础降额0.5）
+            const I_base = I_op / 0.5;
+            
+            // 温度降额后允许工作电流
+            const I_temp = I_op / DT;
+            
+            // 推荐标称电流（取大）
+            const I_nom = Math.max(I_base, I_temp);
+            
+            // 推荐额定DC电压
+            const V_nom = V_sys * 1.2;
+            
+            // 推荐额定分断能力
+            const I_int = I_sc * 1.3;
+            
+            // 熔断器类型
+            let type_str;
+            if (load_type === '容性') {
+                type_str = '延时慢熔 T 型';
+            } else if (load_type === '阻性') {
+                type_str = '快熔 F 型';
+            } else {
+                type_str = '快熔/中速，关注分断电压';
+            }
+            
+            // ========== 容性负载专项计算 ==========
+            let I_peak = 0, tau = 0, I2t_surge = 0, S_factor = 0, I2t_min = 0;
+            const isCapacitive = (load_type === '容性');
+            
+            if (isCapacitive) {
+                const C_cap = parseFloat(document.getElementById('C_cap').value);
+                const R_total = parseFloat(document.getElementById('R_total').value);
+                
+                if (isNaN(C_cap) || isNaN(R_total) || R_total <= 0) {
+                    alert('容性负载请填写有效的总滤波电容和回路总电阻');
+                    return;
+                }
+                
+                // 充电峰值电流
+                I_peak = V_sys / R_total;
+                
+                // RC时间常数（μF转F：除以1e6）
+                tau = R_total * C_cap / 1000000;
+                
+                // 单次浪涌 I²t = 0.5 × I_peak² × τ
+                I2t_surge = 0.5 * Math.pow(I_peak, 2) * tau;
+                
+                // I²t安全系数 S
+                // 上电次数<100 或 有遥测指示=是 → 5；否则=10
+                // （修正原Excel中#REF!错误，应为引用遥测指示）
+                const hasLowCycle = isNaN(cycle_count) || cycle_count < 100;
+                const hasTelemetry = (telemetry === '是');
+                S_factor = (hasLowCycle || hasTelemetry) ? 5 : 10;
+                
+                // 需要的最小熔化 I²t
+                I2t_min = I2t_surge * S_factor;
+            }
+            
+            // ========== 质量等级 ==========
+            let quality;
+            if (scenario === '星载') {
+                quality = '建议选用宇航级（全密封防喷溅、辐照等级适配）';
+            } else if (scenario === '机载') {
+                quality = '建议选用航空级（抗振动、宽温区）';
+            } else {
+                quality = '建议选用工业级或军用级（视具体环境）';
+            }
+            
+            // ========== 更新结果显示 ==========
+            
+            // 自动计算结果
+            document.getElementById('res_I_base').textContent = formatNumber(I_base, 2) + ' A';
+            document.getElementById('res_I_temp').textContent = formatNumber(I_temp, 2) + ' A';
+            document.getElementById('res_I_nom').textContent = formatNumber(I_nom, 2) + ' A';
+            document.getElementById('res_V_nom').textContent = formatNumber(V_nom, 2) + ' V';
+            document.getElementById('res_I_int').textContent = formatNumber(I_int, 2) + ' A';
+            document.getElementById('res_type').textContent = type_str;
+            
+            // 容性负载专项结果
+            const capCalcResult = document.getElementById('cap_calc_result');
+            if (isCapacitive) {
+                capCalcResult.classList.remove('hidden');
+                document.getElementById('res_I_peak').textContent = formatNumber(I_peak, 2) + ' A';
+                document.getElementById('res_tau').textContent = formatNumber(tau, 6) + ' s';
+                document.getElementById('res_I2t_surge').textContent = formatNumber(I2t_surge, 6) + ' A²·s';
+                document.getElementById('res_S').textContent = S_factor.toFixed(0);
+                document.getElementById('res_I2t_min').textContent = formatNumber(I2t_min, 6) + ' A²·s';
+            } else {
+                capCalcResult.classList.add('hidden');
+            }
+            
+            // 选型结论
+            document.getElementById('sum_I').textContent = formatNumber(I_nom, 2) + ' A';
+            document.getElementById('sum_V').textContent = formatNumber(V_nom, 2) + ' V';
+            document.getElementById('sum_Int').textContent = formatNumber(I_int, 2) + ' A';
+            document.getElementById('sum_type').textContent = type_str;
+            
+            const sumI2tRow = document.getElementById('sum_I2t_row');
+            const sumI2t = document.getElementById('sum_I2t');
+            if (isCapacitive) {
+                sumI2t.textContent = formatNumber(I2t_min, 6) + ' A²·s';
+            } else {
+                sumI2t.textContent = '不适用';
+            }
+            
+            document.getElementById('sum_time').textContent = isNaN(t_damage) ? '—' : t_damage.toFixed(2);
+            document.getElementById('sum_quality').textContent = quality;
+            
+            // 校核清单 - 根据场景动态显示
+            const starItems = document.querySelectorAll('.check-star');
+            const capItems = document.querySelectorAll('.check-capacitive');
+            
+            starItems.forEach(item => {
+                if (scenario === '星载') {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            capItems.forEach(item => {
+                if (isCapacitive) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // 显示所有结果区域
+            document.getElementById('calc_section').classList.remove('hidden');
+            document.getElementById('conclusion_section').classList.remove('hidden');
+            document.getElementById('checklist_section').classList.remove('hidden');
+            document.getElementById('footer_note').classList.remove('hidden');
+            
+            // 平滑滚动到结果
+            setTimeout(() => {
+                document.getElementById('calc_section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
